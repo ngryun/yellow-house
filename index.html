@@ -1876,6 +1876,7 @@ function outdoorBase(P, o) {
   const dir = new T.Vector3(...o.sunDir).normalize(), tgt = new T.Object3D(); tgt.position.set(...(o.target || [0, 0, 0])); P.add(tgt);
   const L = new T.DirectionalLight(lin(o.sunCol || '#ffb06a'), o.sunI || 2.4); L.position.copy(tgt.position).addScaledVector(dir, -45); L.target = tgt; L.castShadow = true;
   const b = o.bounds; Object.assign(L.shadow.camera, { left: -b, right: b, top: b, bottom: -b, near: 1, far: 120 }); L.shadow.mapSize.set(o.shadowMap || 2048, o.shadowMap || 2048); L.shadow.bias = -.0006; L.shadow.normalBias = .05; L.shadow.camera.updateProjectionMatrix(); P.add(L);
+  return dome;
 }
 function exitDoor(p, pos, ry, to, o = {}) {
   const g = grp(p, pos, ry), w = o.w || 1.3, hh = o.h || 2.4, fr = toon(o.frame || '#ece6da');
@@ -1995,6 +1996,97 @@ function cypress3D(p, pos, s = 1, seed = 1) {
   for (let i = 0; i < n; i++) { const t = R(), y = t * 6 * s, r = (1 - t) * .9 * s * (.6 + .4 * Math.sin(t * 9 + R())) + .08 * s, a = R() * TAU + t * 5; items.push({ x: Math.cos(a) * r * R(), y: y + .2, z: Math.sin(a) * r * R(), s: .16 * s, sy: .5 * s, sz: .12 * s, r: a, rx: (R() - .5) * .5, c: pick(R, ['#1f3a2c', '#2a4a34', '#33583a', '#1a2e3a', '#3f6a40']) }); }
   instBlobs(g, items, { cast: true }); CY(g, .1 * s, .16 * s, .6 * s, toon('#3a2a20'), [0, .3 * s, 0], { seg: 6 });
   return g;
+}
+/* ---------- 흐르는 붓질 하늘 (시작 화면과 마지막 장면) ---------- */
+/* 붓 자국 모양 점 수천 개가 소용돌이 흐름을 따라 하늘 위를 흘러간다. */
+const STROKE_VS = 'attribute vec3 aColor; attribute float aAngle; attribute float aSize; attribute float aAlpha; attribute float aSeed; uniform float uPx;\n' +
+  'varying vec3 vColor; varying float vAngle; varying float vAlpha; varying float vSeed;\n' +
+  'void main() { vec4 mv = modelViewMatrix * vec4(position, 1.); gl_Position = projectionMatrix * mv; gl_PointSize = min(aSize * uPx / max(.1, -mv.z), 128.); vColor = aColor; vAngle = aAngle; vAlpha = aAlpha; vSeed = aSeed; }';
+const STROKE_FS = 'uniform float uOpacity; varying vec3 vColor; varying float vAngle; varying float vAlpha; varying float vSeed;\n' +
+  'void main() { vec2 p = gl_PointCoord - .5; float c = cos(vAngle), s = sin(vAngle); p = vec2(c * p.x + s * p.y, -s * p.x + c * p.y);\n' +
+  'float w = .12 + .03 * sin(p.x * 9. + vSeed * 6.); float a = smoothstep(.5, .36, abs(p.x)) * smoothstep(w, w * .5, abs(p.y)); if (a < .02) discard;\n' +
+  'float br = .8 + .2 * sin((p.y / w) * 9. + vSeed * 13.); gl_FragColor = vec4(vColor * br, a * vAlpha * uOpacity); }';
+const rawRGB = h => { const c = new T.Color(h); return [c.r, c.g, c.b]; };
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+const strokePx = () => G.renderer.domElement.height / (2 * Math.tan(G.cam.fov * PI / 360));
+function strokeCloud(p, n, order) {
+  const g = new T.BufferGeometry(), c = { n, g, pos: new Float32Array(n * 3), col: new Float32Array(n * 3), ang: new Float32Array(n), size: new Float32Array(n), alp: new Float32Array(n).fill(1), seed: new Float32Array(n).map(() => Math.random()) };
+  for (const [k, a, s] of [['position', c.pos, 3], ['aColor', c.col, 3], ['aAngle', c.ang, 1], ['aSize', c.size, 1], ['aAlpha', c.alp, 1], ['aSeed', c.seed, 1]]) { const at = new T.BufferAttribute(a, s); at.setUsage(T.DynamicDrawUsage); g.setAttribute(k, at); }
+  c.mat = new T.ShaderMaterial({ uniforms: { uPx: { value: 600 }, uOpacity: { value: 1 } }, vertexShader: STROKE_VS, fragmentShader: STROKE_FS, transparent: true, depthWrite: false });
+  c.pts = new T.Points(g, c.mat); c.pts.frustumCulled = false; c.pts.renderOrder = order; c.pts.raycast = () => {}; p.add(c.pts);
+  c.set = (i, rgb) => { c.col[i * 3] = rgb[0]; c.col[i * 3 + 1] = rgb[1]; c.col[i * 3 + 2] = rgb[2]; };
+  c.flag = () => { for (const k of ['position', 'aColor', 'aAngle', 'aSize', 'aAlpha']) g.attributes[k].needsUpdate = true; c.mat.uniforms.uPx.value = strokePx(); };
+  return c;
+}
+function flowSky(P) {
+  const C0 = [0, 1.6, 0], R = 78, few = matchMedia('(pointer: coarse)').matches, sp = RM ? .3 : 1;
+  /* 붓질이 비치는 밤하늘 바탕 */
+  const dm = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, uniforms: { uTime: { value: 0 }, uTop: { value: new T.Color('#1c3a7d') }, uBot: { value: new T.Color('#0a1636') }, uHor: { value: new T.Color('#2c5194') } },
+    vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+    fragmentShader: 'varying vec3 vDir; uniform float uTime; uniform vec3 uTop, uBot, uHor;\n' +
+      'float h(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }\n' +
+      'float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(mix(h(i), h(i + vec3(1, 0, 0)), f.x), mix(h(i + vec3(0, 1, 0)), h(i + vec3(1, 1, 0)), f.x), f.y), mix(mix(h(i + vec3(0, 0, 1)), h(i + vec3(1, 0, 1)), f.x), mix(h(i + vec3(0, 1, 1)), h(i + vec3(1, 1, 1)), f.x), f.y), f.z); }\n' +
+      'float fbm(vec3 p) { float a = .5, s = 0.; for (int i = 0; i < 4; i++) { s += a * n3(p); p *= 2.03; a *= .5; } return s; }\n' +
+      'void main() { vec3 d = normalize(vDir); vec3 q = d * 3. + vec3(uTime * .03, 0., uTime * .01); float w = fbm(q + fbm(q * 1.7 + uTime * .02) * 1.6);\n' +
+      'float st = sin(d.y * 16. + w * 7.) * .5 + .5; vec3 col = mix(uBot, uTop, smoothstep(-.2, .8, d.y)); col = mix(col, uHor, exp(-abs(d.y - .03) * 7.) * .6); col *= .72 + .55 * w * st; gl_FragColor = vec4(col, 1.); }' });
+  const dome = new T.Mesh(new T.SphereGeometry(140, 48, 32), dm); dome.position.set(...C0); dome.renderOrder = -2; dome.raycast = () => {}; P.add(dome);
+  /* 별 일곱 개와 달 둘레로 소용돌이 */
+  const stars = DIPPER.map((_, i) => { const q = sockPos(i), x = q[0] - C0[0], y = q[1] - C0[1], z = q[2] - C0[2]; return { u: Math.atan2(x, -z), v: Math.asin(y / Math.hypot(x, y, z)) }; });
+  const MOON = { u: .66, v: .72 };
+  const VL = [{ u: .55, v: .6, R: .28, k: 1.1 }, { u: -.1, v: .8, R: .17, k: -.95 }, { u: .98, v: .46, R: .24, k: 1 }, { u: -.9, v: .45, R: .22, k: -1 }, { u: .45, v: 1.06, R: .2, k: .8 }]
+    .concat(stars.map(s => ({ u: s.u, v: s.v, R: .07, k: 1.2 })), [{ u: MOON.u, v: MOON.v, R: .1, k: 1.6 }]);
+  const BLUES = ['#132c66', '#1b3a8c', '#22479f', '#2a52b0', '#3a6cc9', '#4f80d2', '#6f9ddc', '#9cc0e8', '#d3e3f3'].map(rawRGB);
+  const YEL = ['#fff4b8', '#f6e27a', '#efcf52', '#e3b93c', '#f8eaa0'].map(rawRGB), ORG = ['#f2b84a', '#e9a23a', '#f6d27a'].map(rawRGB);
+  const any = a => a[(Math.random() * a.length) | 0];
+  const palette = (u, v) => {
+    for (const s of stars) { const dx = wrapA(u - s.u) * Math.cos(v), dy = v - s.v, d = Math.hypot(dx, dy); if (d < .17 && Math.random() < (1 - d / .17) * .5) return any(YEL); }
+    const dx = wrapA(u - MOON.u) * Math.cos(v), dy = v - MOON.v; if (Math.hypot(dx, dy) < .22 && Math.random() < .55) return any(ORG);
+    return BLUES[Math.floor(Math.pow(Math.random(), 1.25) * BLUES.length)];
+  };
+  const field = (u, v, t, o) => { o[0] = .045 + .03 * Math.sin(v * 7 + t * .15); o[1] = .022 * Math.sin(u * 3 + v * 4 + t * .25); for (const w of VL) { const dx = wrapA(u - w.u) * Math.cos(v), dy = v - w.v, f = w.k * Math.exp(-(dx * dx + dy * dy) / (w.R * w.R)); o[0] += -dy * f; o[1] += dx * f; } };
+  /* 앞쪽 하늘만 촘촘하게: 가로 -1.7~1.7, 세로 0.05~1.32 라디안 */
+  const n = few ? 2800 : 3800, U0 = -1.7, U1 = 1.7, V0 = .05, V1 = 1.32, s0 = Math.sin(V0), s1 = Math.sin(V1);
+  const sky = strokeCloud(P, n, -1), U = new Float32Array(n), V = new Float32Array(n), A = new Float32Array(n), L = new Float32Array(n), out = [0, 0];
+  const spawn = (i, init) => { U[i] = U0 + Math.random() * (U1 - U0); V[i] = Math.asin(s0 + Math.random() * (s1 - s0)); L[i] = 4 + Math.random() * 5; A[i] = init ? Math.random() * L[i] : 0; sky.set(i, palette(U[i], V[i])); sky.size[i] = 1.9 + Math.random() * 1.7; };
+  for (let i = 0; i < n; i++) spawn(i, true);
+  const moon = new T.Sprite(new T.SpriteMaterial({ map: moonSpriteTex(), transparent: true, depthWrite: false, fog: false }));
+  moon.position.set(C0[0] + R * .97 * Math.cos(MOON.v) * Math.sin(MOON.u), C0[1] + R * .97 * Math.sin(MOON.v), C0[2] - R * .97 * Math.cos(MOON.v) * Math.cos(MOON.u)); moon.scale.setScalar(14); moon.renderOrder = -.5; P.add(moon);
+  let last = null;
+  G.anims.push(t => {
+    const dt = last == null ? 0 : Math.min(.05, t - last); last = t; dm.uniforms.uTime.value = t; moon.material.rotation = Math.sin(t * .2) * .05;
+    for (let i = 0; i < n; i++) {
+      A[i] += dt; if (A[i] > L[i]) spawn(i, false);
+      const v = V[i]; field(U[i], v, t, out); U[i] += out[0] * dt * sp / Math.max(.2, Math.cos(v)); V[i] += out[1] * dt * sp;
+      if (V[i] > V1 || V[i] < V0 || U[i] > U1 || U[i] < U0) spawn(i, false);
+      const cv = Math.cos(V[i]); sky.pos[i * 3] = C0[0] + R * cv * Math.sin(U[i]); sky.pos[i * 3 + 1] = C0[1] + R * Math.sin(V[i]); sky.pos[i * 3 + 2] = C0[2] - R * cv * Math.cos(U[i]);
+      sky.ang[i] = Math.atan2(-out[1], out[0]); const k = A[i] / L[i]; sky.alp[i] = Math.min(1, k * 5) * Math.min(1, (1 - k) * 4);
+    }
+    sky.flag();
+  });
+}
+/* 초승달: 붓 고리를 두른 달 */
+function moonSpriteTex() {
+  return ctex('flowMoon', 256, 256, x => { const c = 128;
+    for (const [r, col, lw] of [[96, '#f2b84a', 7], [118, '#e9c97a', 5]]) for (let k = 0; k < 20; k++) { const a0 = k / 20 * TAU, a1 = a0 + TAU / 20 * (.5 + Math.random() * .35); x.strokeStyle = col; x.globalAlpha = .5 + Math.random() * .4; x.lineWidth = lw; x.lineCap = 'round'; x.beginPath(); x.arc(c, c, r, a0, a1); x.stroke(); }
+    x.globalAlpha = 1; const cv = document.createElement('canvas'); cv.width = cv.height = 256; const y = cv.getContext('2d'); y.fillStyle = '#f6c443'; y.beginPath(); y.arc(c, c, 70, 0, TAU); y.fill(); y.globalCompositeOperation = 'destination-out'; y.beginPath(); y.arc(c + 38, c - 26, 62, 0, TAU); y.fill(); x.drawImage(cv, 0, 0); });
+}
+/* 짙은 초록 붓질이 불꽃처럼 타오르는 사이프러스 */
+function strokeCypress(P, pos, s = 1) {
+  const n = Math.round((matchMedia('(pointer: coarse)').matches ? 1000 : 1400) * Math.max(.55, s)), sp = RM ? .3 : 1, H = 9.4 * s, RR = .78 * s;
+  const cy = strokeCloud(P, n, 2), S0 = new Float32Array(n), TH = new Float32Array(n);
+  const COL = ['#0d2418', '#163a24', '#1d4529', '#22502f', '#0a1410', '#2c4a26', '#3d4c22'].map(rawRGB);
+  for (let i = 0; i < n; i++) { S0[i] = Math.random(); TH[i] = Math.random() * TAU; cy.set(i, COL[(Math.random() * COL.length) | 0]); cy.size[i] = (.26 + Math.random() * .18) * s; cy.alp[i] = .92; }
+  let last = null;
+  G.anims.push(t => {
+    const dt = last == null ? 0 : Math.min(.05, t - last); last = t;
+    for (let i = 0; i < n; i++) {
+      S0[i] += dt * .035 * sp; if (S0[i] > 1) S0[i] -= 1; TH[i] += dt * .25 * sp; const q = S0[i], th = TH[i];
+      const r = RR * Math.pow(1 - q, .85) * (.72 + .28 * Math.sin(q * 18 + th * 2 + t * .6)), sw = Math.sin(t * .5 + q * 3) * .3 * q * s;
+      cy.pos[i * 3] = pos[0] + r * Math.cos(th) + sw; cy.pos[i * 3 + 1] = pos[1] + q * H; cy.pos[i * 3 + 2] = pos[2] + r * Math.sin(th);
+      cy.ang[i] = -PI / 2 + Math.sin(q * 12 + th + t * .8) * .55;
+    }
+    cy.flag();
+  });
 }
 function lampPost(p, pos, h0 = 3.2) { const g = grp(p, pos), m = toon('#1e2230'); CY(g, .05, .07, h0, m, [0, h0 / 2, 0], { seg: 8 }); B(g, .26, .34, .26, glowMat('#ffd27a', .9), [0, h0 + .1, 0], { ink: false }); B(g, .34, .05, .34, m, [0, h0 + .3, 0]); glow(g, [0, h0 + .1, 0], 2.4, '#ffcf70', .55); const L = new T.PointLight(lin('#ffc27a'), 1.6, 9, 2); L.position.set(0, h0, 0); g.add(L); return g; }
 function facade(p, pos, ry, w, hh, col, o = {}) {
@@ -2218,11 +2310,13 @@ const SCN = {
     spawn: { pos: [0, 1.65, 6], yaw: 0, pitch: .2 }, spawns: { wheat: { pos: [0, 1.65, 6], yaw: 0, pitch: .2 } },
     build(P, o = {}) {
       const allLit = !!(o.title || o.end || S.solved.stars);
-      outdoorBase(P, { sky: 'starry', ground: hillTex(), groundRep: 50, fog: ['#142254', 30, 120], hemi: ['#5a74c8', '#1a2030', .9], sunDir: [.3, -.55, -.8], sunCol: '#a8bcf8', sunI: .9, bounds: 24, skyRot: 0 });
+      const flow = !!(o.title || o.end);
+      const dome = outdoorBase(P, { sky: 'starry', ground: hillTex(), groundRep: 50, fog: ['#142254', 30, 120], hemi: ['#5a74c8', '#1a2030', .9], sunDir: [.3, -.55, -.8], sunCol: '#a8bcf8', sunI: .9, bounds: 24, skyRot: 0 });
       for (const [x, z, sx, sy, c] of [[-30, -45, 40, 6, '#1e3048'], [25, -50, 46, 8, '#22324e'], [0, -70, 70, 12, '#26365a'], [-50, -20, 30, 5, '#1a2a40']]) SPH(P, 1, toon(c), [x, -sy * .2, z], { scale: [sx, sy, sx * .6], detail: 2, cast: false });
       const vg = grp(P, [5, 0, -27]), R = rng(9); vg.scale.setScalar(1.3); for (let i = 0; i < 22; i++) { const x = (R() - .5) * 26, z = (R() - .5) * 8, w = 1.2 + R() * 1.4, hh = 1 + R() * 1.2; B(vg, w, hh, w * .8, toon(pick(R, ['#3a4a7a', '#4a4a6a', '#2e3e66'])), [x, hh / 2, z], { ink: false, cast: false }); if (R() < .6) { M(vg, new T.PlaneGeometry(.3, .35), basic({ color: lin('#ffd27a'), fog: false }), [x, hh * .5, z + w * .41], { cast: false }); glow(vg, [x, hh * .5, z + w * .5], 1.4, '#ffc070', .4); } }
       B(vg, 1.4, 4, 1.4, toon('#3a466e'), [2, 2, 0], { cast: false }); CY(vg, 0, .8, 4, toon('#2e3a5e'), [2, 6, 0], { seg: 4, cast: false });
-      cypress3D(P, [-4.2, 0, -1.5], 1.25, 5); cypress3D(P, [-5.6, 0, -.2], .7, 8);
+      if (flow) { dome.visible = false; flowSky(P); strokeCypress(P, [-4.2, 0, -1.5], 1.25); strokeCypress(P, [-5.6, 0, -.2], .7); }
+      else { cypress3D(P, [-4.2, 0, -1.5], 1.25, 5); cypress3D(P, [-5.6, 0, -.2], .7, 8); }
       cypress3D(P, [9, 0, -8], .8, 12);
       const sg = grp(P);
       DIPPER.forEach((_, i) => { const pos = sockPos(i), k = allLit ? SOCKET[i] : S.sky[i], st = k && STARS[k]; const sp = new T.Sprite(new T.SpriteMaterial({ map: skySocketTex(!!st), color: lin(st ? st.col : '#d2ae63'), transparent: true, depthWrite: false, fog: false })); sp.position.set(...pos); sp.scale.set(st ? 12 : 8, st ? 12 : 8, 1); sg.add(sp); if (st) glow(sg, pos, 22, st.col, .6); });
