@@ -2049,11 +2049,22 @@ function flowSky(P) {
   const sky = strokeCloud(P, n, -1), U = new Float32Array(n), V = new Float32Array(n), A = new Float32Array(n), L = new Float32Array(n), out = [0, 0];
   const spawn = (i, init) => { U[i] = U0 + Math.random() * (U1 - U0); V[i] = Math.asin(s0 + Math.random() * (s1 - s0)); L[i] = 4 + Math.random() * 5; A[i] = init ? Math.random() * L[i] : 0; sky.set(i, palette(U[i], V[i])); sky.size[i] = 1.9 + Math.random() * 1.7; };
   for (let i = 0; i < n; i++) spawn(i, true);
-  const moon = new T.Sprite(new T.SpriteMaterial({ map: moonSpriteTex(), transparent: true, depthWrite: false, fog: false }));
-  moon.position.set(C0[0] + R * .97 * Math.cos(MOON.v) * Math.sin(MOON.u), C0[1] + R * .97 * Math.sin(MOON.v), C0[2] - R * .97 * Math.cos(MOON.v) * Math.cos(MOON.u)); moon.scale.setScalar(14); moon.renderOrder = -.5; P.add(moon);
+  /* 달도 붓질로: 초승달 안을 채우는 노란 붓질과, 둘레를 천천히 도는 주황 붓질 */
+  const MN = 640, MF = 420, moon = strokeCloud(P, MN, -.5), MD = [];
+  const MFILL = ['#f6c443', '#f8d860', '#f2b84a', '#fff0a0'].map(rawRGB), MHALO = ['#f2b84a', '#e9a23a', '#f6d27a', '#efcf52', '#e9c97a'].map(rawRGB);
+  const mpos = (i, a, r) => { const v = MOON.v + Math.sin(a) * r, u = MOON.u + Math.cos(a) * r / Math.cos(v), cv = Math.cos(v), rr = R * .97; moon.pos[i * 3] = C0[0] + rr * cv * Math.sin(u); moon.pos[i * 3 + 1] = C0[1] + rr * Math.sin(v); moon.pos[i * 3 + 2] = C0[2] - rr * cv * Math.cos(u); };
+  const tang = a => Math.atan2(-Math.cos(a), -Math.sin(a));
+  for (let i = 0; i < MN; i++) {
+    if (i < MF) { let x, y; do { x = (Math.random() * 2 - 1) * .05; y = (Math.random() * 2 - 1) * .05; } while (Math.hypot(x, y) > .05 || Math.hypot(x - .027, y - .019) < .044); MD.push({ a: Math.atan2(y, x), r: Math.hypot(x, y) }); moon.set(i, any(MFILL)); moon.size[i] = 1.1 + Math.random() * .5; moon.alp[i] = .95; }
+    else { MD.push({ a: Math.random() * TAU, r: .062 + Math.random() * .032, w: .08 + Math.random() * .07 }); moon.set(i, any(MHALO)); moon.size[i] = 1.2 + Math.random() * .7; moon.alp[i] = .55 + Math.random() * .35; }
+    mpos(i, MD[i].a, MD[i].r); moon.ang[i] = tang(MD[i].a);
+  }
+  { const v = MOON.v, u = MOON.u, rr = R * .99; glow(P, [C0[0] + rr * Math.cos(v) * Math.sin(u), C0[1] + rr * Math.sin(v), C0[2] - rr * Math.cos(v) * Math.cos(u)], 22, '#f6c443', .32); }
   let last = null;
   G.anims.push(t => {
-    const dt = last == null ? 0 : Math.min(.05, t - last); last = t; dm.uniforms.uTime.value = t; moon.material.rotation = Math.sin(t * .2) * .05;
+    const dt = last == null ? 0 : Math.min(.05, t - last); last = t; dm.uniforms.uTime.value = t;
+    for (let i = 0; i < MN; i++) { const m = MD[i]; if (i >= MF) { m.a -= m.w * dt * sp; mpos(i, m.a, m.r); } moon.ang[i] = tang(m.a) + .12 * Math.sin(t * .7 + i); }
+    moon.flag();
     for (let i = 0; i < n; i++) {
       A[i] += dt; if (A[i] > L[i]) spawn(i, false);
       const v = V[i]; field(U[i], v, t, out); U[i] += out[0] * dt * sp / Math.max(.2, Math.cos(v)); V[i] += out[1] * dt * sp;
@@ -2063,12 +2074,6 @@ function flowSky(P) {
     }
     sky.flag();
   });
-}
-/* 초승달: 붓 고리를 두른 달 */
-function moonSpriteTex() {
-  return ctex('flowMoon', 256, 256, x => { const c = 128;
-    for (const [r, col, lw] of [[96, '#f2b84a', 7], [118, '#e9c97a', 5]]) for (let k = 0; k < 20; k++) { const a0 = k / 20 * TAU, a1 = a0 + TAU / 20 * (.5 + Math.random() * .35); x.strokeStyle = col; x.globalAlpha = .5 + Math.random() * .4; x.lineWidth = lw; x.lineCap = 'round'; x.beginPath(); x.arc(c, c, r, a0, a1); x.stroke(); }
-    x.globalAlpha = 1; const cv = document.createElement('canvas'); cv.width = cv.height = 256; const y = cv.getContext('2d'); y.fillStyle = '#f6c443'; y.beginPath(); y.arc(c, c, 70, 0, TAU); y.fill(); y.globalCompositeOperation = 'destination-out'; y.beginPath(); y.arc(c + 38, c - 26, 62, 0, TAU); y.fill(); x.drawImage(cv, 0, 0); });
 }
 /* 짙은 초록 붓질이 불꽃처럼 타오르는 사이프러스 */
 function strokeCypress(P, pos, s = 1) {
