@@ -1794,7 +1794,7 @@ function plaque(p, text, pos, w = .82) { const m = M(p, new T.PlaneGeometry(w, w
 function windowAt(sp, o) {
   const g = onWall(G.room, sp, o.wall, o.at, 0, 0), tm = toon(sp.trim || '#efe8da'), ww = o.w, y0 = o.y0, y1 = o.y1, hh = y1 - y0, yc = y0 + hh / 2;
   B(g, ww + .26, .12, .12, tm, [0, y1 + .06, .03]); B(g, .13, hh, .12, tm, [-ww / 2 - .065, yc, .03]); B(g, .13, hh, .12, tm, [ww / 2 + .065, yc, .03]); B(g, ww + .34, .06, .24, tm, [0, y0 - .03, .07]);
-  for (const [w2, h2, pos] of [[.02, hh, [-ww / 2, yc, -.16]], [.02, hh, [ww / 2, yc, -.16]], [ww, .02, [0, y1, -.16]], [ww, .02, [0, y0, -.16]]]) B(g, w2, h2, .32, tm, pos, { ink: false, cast: false });
+  for (const [w2, h2, pos] of [[.02, hh, [-ww / 2, yc, -.175]], [.02, hh, [ww / 2, yc, -.175]], [ww, .02, [0, y1, -.175]], [ww, .02, [0, y0, -.175]]]) B(g, w2, h2, .32, tm, pos, { ink: false, cast: false });
   const mul = toon(o.frame || '#f6f2ea'); B(g, .045, hh, .045, mul, [0, yc, -.12], { cast: false }); for (let k = 1; k < 4; k++) B(g, ww, .035, .04, mul, [0, y0 + hh * k / 4, -.12], { cast: false });
   if (o.closed) { const cm = toon(o.closed); for (const s of [-1, 1]) { B(g, ww * .5 - .02, hh - .02, .04, cm, [s * ww * .25, yc, -.18], { cast: false }); for (let k = 0; k < 7; k++) B(g, ww * .5 - .1, .02, .02, toon('#222'), [s * ww * .25, y0 + .12 + k * (hh - .24) / 6, -.15], { ink: false, cast: false }); } }
   else {
@@ -1802,7 +1802,7 @@ function windowAt(sp, o) {
     if (!o.noShutters) { const sh = toon('#ffffff', { map: shutterTex() }); for (const s of [-1, 1]) { const m = B(g, ww * .5, hh, .04, sh, [s * (ww * .5 + .02), yc, -.62], { cast: false }); m.rotation.y = s * .5; } }
   }
   if (o.bars) { const bm = toon('#2a2a30'); for (let k = 1; k < 6; k++) CY(g, .012, .012, hh, bm, [-ww / 2 + ww * k / 6, yc, -.06], { seg: 6, cast: false }); for (const yy of [y0 + hh * .33, y0 + hh * .66]) B(g, ww, .02, .02, bm, [0, yy, -.06], { ink: false, cast: false }); }
-  if (o.curtain) { const cm = toon(o.curtain); for (const s of [-1, 1]) { const c = B(g, .34, hh + .6, .08, cm, [s * (ww / 2 + .3), yc + .2, .14], { ink: false }); c.scale.x = 1; B(g, .06, .3, .1, cm, [s * (ww / 2 + .3), y0 + .2, .16], { ink: false }); } B(g, ww + 1.1, .04, .04, toon('#b8913f'), [0, y1 + .28, .16], { ink: false, cast: false }); }
+  if (o.curtain) { const cm = toon(o.curtain); for (const s of [-1, 1]) { const c = B(g, .34, hh + .6, .08, cm, [s * (ww / 2 + .3), yc + .2, .14], { ink: false }); c.scale.x = 1; B(g, .06, .3, .1, cm, [s * (ww / 2 + .3), y0 + .2, .16], { ink: false }); } B(g, ww + 1.1, .04, .04, toon('#b8913f'), [0, y1 + .28, .19], { ink: false, cast: false }); }
   return g;
 }
 function doorway(sp, o) {
@@ -1811,7 +1811,7 @@ function doorway(sp, o) {
   if (o.type === 'stairs') { stairsBeyond(g, w, hh, sp); }
   else if (o.type !== 'lightdoor') {
     const cw = toon(o.outside ? '#5c6b55' : '#6e5a4a'), D = 1.6;
-    B(g, .04, hh, D, cw, [-w / 2 - .03, hh / 2, -D / 2], { ink: false, cast: false }); B(g, .04, hh, D, cw, [w / 2 + .03, hh / 2, -D / 2], { ink: false, cast: false }); B(g, w + .1, .04, D, cw, [0, hh + .01, -D / 2], { ink: false, cast: false }); B(g, w + .08, .03, D, toon(o.outside ? '#8a8a6a' : '#5a3d2a'), [0, .005, -D / 2], { ink: false, cast: false });
+    B(g, .04, hh, D, cw, [-w / 2 - .03, hh / 2, -D / 2 - .015], { ink: false, cast: false }); B(g, .04, hh, D, cw, [w / 2 + .03, hh / 2, -D / 2 - .015], { ink: false, cast: false }); B(g, w + .1, .04, D, cw, [0, hh + .01, -D / 2 - .015], { ink: false, cast: false }); B(g, w + .02, .03, D, toon(o.outside ? '#8a8a6a' : '#5a3d2a'), [0, .005, -D / 2], { ink: false, cast: false });
     M(g, new T.PlaneGeometry(w + .1, hh + .1), basic({ map: o.outside ? beyondAny(o.beyond || 'night') : beyondTex('warm'), fog: false }), [0, hh / 2, -D], { cast: false, recv: false });
     const open = o.to && canEnter(o.to), hinge = grp(g, [-w / 2 + .02, 0, -.07]), lm = toon(o.leaf || '#e9e2d2'), lw = w - .04;
     B(hinge, lw, hh - .02, .05, lm, [lw / 2, (hh - .02) / 2, 0]);
@@ -1820,14 +1820,14 @@ function doorway(sp, o) {
     SPH(hinge, .035, toon('#d8b35e'), [lw - .09, 1.0, .06], { cast: false });
     hinge.rotation.y = open ? 1.2 : 0; g.userData.leaf = hinge;
   }
-  if (o.to || o.label) plaque(g, o.label || ROOMS[o.to].name, [0, hh + .34, .1]);
+  if (o.to || o.label) plaque(g, o.label || ROOMS[o.to].name, [0, hh + .34, .12]);
   if (o.type !== 'lightdoor') hotspotDoor(g, o.to, o.label);
   return g;
 }
 function stairsBeyond(g, w, hh, sp) {
   const st = toon('#7a5a40'), wl = toon('#aeb9c6'), wd = toon('#5a3d2a');
   for (let i = 0; i < 13; i++) B(g, w - .04, .19, .3, st, [0, .095 + i * .19, -.2 - i * .3], { cast: false });
-  B(g, .05, 5, 4.2, wl, [-w / 2 - .03, 2.4, -2.1], { ink: false, cast: false }); B(g, .05, 5, 4.2, wl, [w / 2 + .03, 2.4, -2.1], { ink: false, cast: false });
+  B(g, .05, 5, 4.2, wl, [-w / 2 - .03, 2.4, -2.115], { ink: false, cast: false }); B(g, .05, 5, 4.2, wl, [w / 2 + .03, 2.4, -2.115], { ink: false, cast: false });
   M(g, new T.PlaneGeometry(w, 5), basic({ color: lin('#1a1512') }), [0, 2.5, -4.1], { cast: false });
   const rail = B(g, .05, .05, 4.2, wd, [w / 2 - .1, 1.85, -2.0], { cast: false }); rail.rotation.x = Math.atan(.19 / .3);
   for (let i = 0; i < 12; i += 2) B(g, .03, .9, .03, wd, [w / 2 - .1, .19 * i + .62, -.2 - i * .3], { ink: false, cast: false });
@@ -1841,7 +1841,7 @@ function table(p, pos, w, d, hh, c = '#6b4a32', ry = 0) { const g = grp(p, pos, 
 function chair(p, pos, ry, c = '#6b4a32') { const g = grp(p, pos, ry), m = toon(c); B(g, .44, .05, .42, m, [0, .46, 0]); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(g, .04, .46, .04, m, [sx * .19, .23, sz * .18], { ink: false }); B(g, .44, .5, .04, m, [0, .74, -.19]); for (const sx of [-1, 1]) B(g, .04, .5, .04, m, [sx * .2, .74, -.19], { ink: false }); return g; }
 function sofa(p, pos, ry, len = 2, c = '#7d8a6a') { const g = grp(p, pos, ry), m = toon(c), wd = toon('#5a3d2a'); B(g, len, .4, .85, m, [0, .26, 0]); B(g, len, .55, .2, m, [0, .65, -.33]); for (const s of [-1, 1]) B(g, .16, .62, .85, m, [s * (len / 2 - .08), .39, 0]); for (let i = 0; i < 3; i++) B(g, len / 3 - .1, .12, .62, m, [(-1 + i) * len / 3 * .86, .5, .06]); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(g, .06, .07, .06, wd, [sx * (len / 2 - .1), .035, sz * .35], { ink: false }); return g; }
 function armchair(p, pos, ry, c) { return sofa(p, pos, ry, .95, c); }
-function plant(p, pos, s = 1) { const g = grp(p, pos); CY(g, .2 * s, .15 * s, .36 * s, toon('#b8643f'), [0, .18 * s, 0], { ink: true }); const R = rng((Math.abs(pos[0] * 100 + pos[2] * 10)) | 0); const ms = [toon('#4f7d4a'), toon('#6b9a55'), toon('#3d6a40')]; for (let i = 0; i < 7; i++) SPH(g, (.15 + R() * .12) * s, ms[i % 3], [(R() - .5) * .34 * s, (.48 + R() * .5) * s, (R() - .5) * .34 * s]); return g; }
+function plant(p, pos, s = 1) { const g = grp(p, pos); CY(g, .2 * s, .15 * s, .36 * s, toon('#b8643f'), [0, .18 * s, 0], { ink: true }); const R = rng((Math.abs(pos[0] * 100 + pos[2] * 10)) | 0); const ms = [toon('#4f7d4a'), toon('#6b9a55'), toon('#3d6a40')]; for (let i = 0; i < 7; i++) { const a = i * 2.4 + R() * .5, r = (i ? .1 + (i % 3) * .035 : 0) * s; SPH(g, (.15 + R() * .1) * s, ms[i % 3], [Math.cos(a) * r, (.5 + i * .075 + R() * .04) * s, Math.sin(a) * r]); } return g; }
 function rug(p, pos, w, d, key, cols, ry = 0) { M(p, new T.PlaneGeometry(w, d), toon('#ffffff', { map: rugTex(key, cols) }), [pos[0], .006, pos[2]], { rot: [-PI / 2, 0, ry], cast: false }); }
 function framed(p, tex, w, hh, wp, o = {}) { const g = grp(p, wp.pos, wp.ry), fm = toon(o.frame || '#b8913f'), f = o.fw || .07, dz = .03; B(g, w + 2 * f, f, .05, fm, [0, hh / 2 + f / 2, dz]); B(g, w + 2 * f, f, .05, fm, [0, -hh / 2 - f / 2, dz]); B(g, f, hh, .05, fm, [-w / 2 - f / 2, 0, dz]); B(g, f, hh, .05, fm, [w / 2 + f / 2, 0, dz]); M(g, new T.PlaneGeometry(w, hh), lamb(tex, o.glow != null ? o.glow : .24), [0, 0, .012], { cast: false }); return g; }
 const wp = (sp, wall, u, y, inset = .01) => wallPos(sp, wall, u, y, inset);
@@ -1857,7 +1857,7 @@ function coatStand(p, pos) { const g = grp(p, pos), d = toon('#3a2a1e'); CY(g, .
 function cupboard(p, wpos, w, hh, d, c) { const g = grp(p, wpos.pos, wpos.ry), m = toon(c); B(g, w, hh, d, m, [0, hh / 2, d / 2]); B(g, w + .08, .06, d + .08, m, [0, hh + .03, d / 2]); for (const s of [-1, 1]) { B(g, w / 2 - .1, hh * .38, .02, m, [s * w / 4, hh * .28, d + .01]); SPH(g, .025, toon('#c9a24a'), [s * .06, hh * .28, d + .03], { cast: false }); } for (let i = 0; i < 5; i++) CY(g, .11, .11, .015, toon(i % 2 ? '#f3d36b' : '#3a6fd0'), [-w / 2 + .2 + i * (w - .4) / 4, hh + .17, d * .4], { rot: [PI / 2 - .2, 0, 0], seg: 18 }); B(g, w - .1, .3, .02, toon('#f5efe4'), [0, hh * .78, d + .005], { ink: false }); return g; }
 function bed(p, pos, ry) { const g = grp(p, pos, ry), wd = toon('#6b4a32'); B(g, 1.7, 1.2, .1, wd, [0, .6, -1.05]); B(g, 1.7, .55, .08, wd, [0, .3, 1.05]); B(g, 1.6, .3, 2.1, wd, [0, .2, 0]); B(g, 1.56, .22, 2.0, toon('#f3efe6'), [0, .45, 0]); B(g, 1.6, .1, 1.35, toon('#8a6aa8'), [0, .58, .32]); for (const s of [-1, 1]) B(g, .62, .14, .36, toon('#ffffff'), [s * .4, .62, -.75], { ink: true }); return g; }
 function nightstand(p, pos) { const g = grp(p, pos), m = toon('#6b4a32'); B(g, .46, .55, .4, m, [0, .275, 0]); B(g, .38, .16, .02, m, [0, .38, .21]); SPH(g, .02, toon('#c9a24a'), [0, .38, .23], { cast: false }); return g; }
-function tree(p, pos, s = 1, col = '#4f7a46', seed = 1) { const g = grp(p, pos), R = rng(seed); CY(g, .14 * s, .22 * s, 2.4 * s, toon('#5b4636'), [0, 1.2 * s, 0], { seg: 7 }); const ms = [toon(col), toon('#3f6a3c'), toon('#6b9150')]; for (let i = 0; i < 7; i++) SPH(g, (1 + R() * .7) * s, ms[i % 3], [(R() - .5) * 1.8 * s, (2.8 + R() * 1.6) * s, (R() - .5) * 1.8 * s], { detail: 1 }); return g; }
+function tree(p, pos, s = 1, col = '#4f7a46', seed = 1) { const g = grp(p, pos), R = rng(seed); CY(g, .14 * s, .22 * s, 2.4 * s, toon('#5b4636'), [0, 1.2 * s, 0], { seg: 7 }); const ms = [toon(col), toon('#3f6a3c'), toon('#6b9150')]; for (let i = 0; i < 7; i++) { const a = i * 2.4 + R() * .5, r = (i ? .45 + (i % 3) * .2 : 0) * s; SPH(g, (1 + R() * .6) * s, ms[i % 3], [Math.cos(a) * r, (2.9 + i * .22 + R() * .15) * s, Math.sin(a) * r], { detail: 1 }); } return g; }
 function instBlobs(p, items, o = {}) {
   if (!items.length) return null;
   const geo = new T.IcosahedronGeometry(1, o.detail || 0), im = new T.InstancedMesh(geo, toon('#ffffff'), items.length);
@@ -1965,10 +1965,10 @@ const glowMat = (c, k = .6) => { const m = toon(c); m.emissive = lin(c).multiply
 function rushChair(p, pos, ry, c = '#e0b84a', seat = '#d8b860') {
   const g = grp(p, pos, ry), m = toon(c);
   B(g, .44, .05, .42, toon(seat), [0, .45, 0]);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) CY(g, .022, .022, .45, m, [sx * .2, .225, sz * .19], { seg: 6 });
-  for (const sx of [-1, 1]) CY(g, .024, .024, .55, m, [sx * .2, .72, -.19], { seg: 6 });
-  for (const yy of [.6, .76, .92]) B(g, .4, .05, .025, m, [0, yy, -.19]);
-  for (const sz of [-1, 1]) B(g, .4, .02, .02, m, [0, .16, sz * .19], { ink: false });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) CY(g, .022, .022, .45, m, [sx * .19, .225, sz * .18], { seg: 6 });
+  for (const sx of [-1, 1]) CY(g, .024, .024, .55, m, [sx * .19, .72, -.18], { seg: 6 });
+  for (const yy of [.6, .76, .92]) B(g, .38, .05, .025, m, [0, yy, -.18]);
+  for (const sz of [-1, 1]) B(g, .38, .02, .02, m, [0, .16, sz * .18], { ink: false });
   return g;
 }
 function armchairG(p, pos, ry, c = '#7a3a26', seat = '#6f8f4a') {
@@ -2066,9 +2066,9 @@ const SCN = {
       const lk = onWall(P, sp, 'E', -.75, 1.3); B(lk, .5, .34, .05, toon('#b8913f'), [0, 0, .025]); for (let i = 0; i < 5; i++) CY(lk, .036, .036, .06, toon(S.solved.atelier ? '#efd99a' : '#d9b866'), [-.16 + i * .08, -.02, .065], { rot: [0, 0, PI / 2], seg: 16 }); SPH(lk, .03, toon('#f2c230'), [0, .13, .06], { cast: false }); hotspot(lk, 'lock');
       const bd = onWall(P, sp, 'E', 1.0, 1.65); B(bd, 1.3, .9, .04, toon('#6b4a32'), [0, 0, .02]); M(bd, new T.PlaneGeometry(1.2, .8), lamb(corkTex(), .3), [0, 0, .045], { cast: false }); hotspot(bd, 'board');
       table(P, [-.35, 0, .55], 1.6, .8, .78, '#7a5634', .08);
-      const pl = grp(P, [-.75, .79, .5], .3); for (const [dx, list] of [[-.05, PAL_NUENEN], [.42, PAL_ARLES]]) { CY(pl, .22, .22, .014, toon('#b8946a'), [dx, 0, 0], { scale: [1.3, 1, 1], seg: 24 }); list.forEach(([, c], i) => SPH(pl, .035, toon(c), [dx + Math.cos(i * 1.2) * .17, .014, Math.sin(i * 1.2) * .11], { cast: false, detail: 0 })); } hotspot(pl, 'palettes');
+      const pl = grp(P, [-.75, .79, .5], .3); for (const [dx, list] of [[-.12, PAL_NUENEN], [.5, PAL_ARLES]]) { CY(pl, .22, .22, .014, toon('#b8946a'), [dx, 0, 0], { scale: [1.3, 1, 1], seg: 24 }); list.forEach(([, c], i) => SPH(pl, .035, toon(c), [dx + Math.cos(i * 1.2) * .17, .014, Math.sin(i * 1.2) * .11], { cast: false, detail: 0 })); } hotspot(pl, 'palettes');
       const lt = grp(P, [.2, .785, .62], -.2); B(lt, .26, .01, .17, toon('#f1e6cf'), [0, .005, 0]); CY(lt, .026, .026, .012, toon('#9c2a22'), [0, .016, 0], { seg: 12 }); hotspot(lt, 'letter');
-      for (let i = 0; i < 4; i++) CY(P, .012, .012, .22, toon(['#f2c230', '#2f5fc0', '#e2473a', '#2e9a6a'][i]), [.48 + i * .04, .8, .38], { rot: [0, 0, PI / 2], seg: 6 });
+      for (let i = 0; i < 4; i++) CY(P, .012, .012, .22, toon(['#f2c230', '#2f5fc0', '#e2473a', '#2e9a6a'][i]), [.25 + (i % 2) * .02, .793, .28 + i * .032], { rot: [0, 0, PI / 2], seg: 6 });
       const es = easel(P, [-2.55, 0, -.9], pTex('yh', artFn('yellowhouse'), 640, 512), .95, .76); faceTo(es, .5, 1.5);
       stove(P, [3.0, 0, 2.2]); canvasStack(P, [-3.15, 0, 1.9], PI / 2, 4); canvasStack(P, [-3.1, 0, -2.3], PI / 2, 3);
       rushChair(P, [.95, 0, 1.45], -.5); rushChair(P, [-1.5, 0, 1.4], .3);
